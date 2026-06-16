@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import glob
 import cv2 
+import torch
 from ultralytics import YOLO
 
 from src.vision import VisionController
@@ -19,6 +20,36 @@ from src.caja_negra import CajaNegra
 
 pyautogui.FAILSAFE = False 
 pyautogui.PAUSE = 0.01
+
+def verificar_gpu():
+    print("🔍 Verificando compatibilidad de hardware...")
+    if not torch.cuda.is_available():
+        print("╔══════════════════════════════════════════════════════╗")
+        print("║     🚫 GPU NO COMPATIBLE DETECTADA                  ║")
+        print("╠══════════════════════════════════════════════════════╣")
+        print("║  No se detectó una GPU NVIDIA con CUDA.            ║")
+        print("║  Este programa requiere una tarjeta gráfica        ║")
+        print("║  NVIDIA compatible con CUDA para funcionar.        ║")
+        print("╠══════════════════════════════════════════════════════╣")
+        print("║  GPUs compatibles (lista no exhaustiva):           ║")
+        print("║  • NVIDIA GeForce GTX 900 series en adelante       ║")
+        print("║  • NVIDIA GeForce GTX 1000 series en adelante      ║")
+        print("║  • NVIDIA GeForce RTX 2000 series en adelante      ║")
+        print("║  • NVIDIA Quadro P series en adelante              ║")
+        print("╠══════════════════════════════════════════════════════╣")
+        print("║  Si tienes una GPU compatible, actualiza tus       ║")
+        print("║  drivers e instala CUDA Toolkit desde:             ║")
+        print("║  https://developer.nvidia.com/cuda-downloads        ║")
+        print("╚══════════════════════════════════════════════════════╝")
+        sys.exit(1)
+
+    gpu_name = torch.cuda.get_device_name(0)
+    gpu_ver = torch.version.cuda
+    print(f"✅ GPU Detectada: {gpu_name}")
+    print(f"✅ CUDA Version: {gpu_ver}")
+    print("✅ Hardware compatible. Iniciando programa...\n")
+
+verificar_gpu()
 
 class AppUI:
     def __init__(self):
