@@ -11,7 +11,7 @@ Bot autónomo que juega y se re-entrena solo usando YOLOv8 + Grounding DINO.
 
 Genera el .exe con doble clic en `build.bat` (necesitas Python y CUDA instalados).
 
-> **Nota:** El .exe pesa ~2.5GB por incluir PyTorch + CUDA, por lo que no se sube a GitHub. Si quieres compartir el .exe, súbelo a Google Drive, Mega o Discord desde tu PC y pega el enlace aquí mismo en el README.
+> **Descarga el .exe ya compilado:** [gallina.exe en Google Drive](https://drive.google.com/file/d/1EYU_tfq_Ess4Mfi5HQhynzUZMXDX1go2/view?usp=sharing) (~2.5GB)
 
 ## Opción 2: Desde código (Python)
 
