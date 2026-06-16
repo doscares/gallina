@@ -1,13 +1,17 @@
-# Gallina AI - Bot Autónomo con Auto-Aprendizaje
+# gallina stake experimento IA
 
-Bot que juega automáticamente y se re-entrena solo usando YOLOv8 + Grounding DINO.
+Bot autónomo que juega y se re-entrena solo usando YOLOv8 + Grounding DINO.
 
 ## Requisitos
 
 - Python 3.10+
-- GPU NVIDIA con CUDA (recomendado)
+- GPU NVIDIA con CUDA (obligatorio, el programa verifica al iniciar)
 
-## Instalación
+## Opción 1: Ejecutable (más simple)
+
+Descarga `gallina.exe` de la carpeta `dist/` y ejecútalo directamente.
+
+## Opción 2: Desde código (Python)
 
 ```powershell
 # Crear y activar entorno virtual
@@ -16,13 +20,6 @@ python -m venv .venv
 
 # Instalar dependencias
 pip install -r requirements.txt
-```
-
-## Uso
-
-```powershell
-# Activar el entorno virtual (si no lo está)
-.venv\Scripts\activate
 
 # Ejecutar el bot
 python main.py
@@ -38,6 +35,12 @@ python main.py
 | Botón **SOLO JUGAR** | Juega sin capturar screens ni auto-entrenar |
 | Botón **ENTRENAR IA** | Entrena la IA manualmente |
 
+## Funcionalidades
+
+- **Detector de GPU automático** — Verifica que el hardware sea compatible al iniciar. Si no detecta una GPU NVIDIA con CUDA, muestra las series compatibles y se cierra para proteger equipos de gama baja.
+- **Solo Jugar** — Botón que desactiva la captura de screenshots y el auto-entrenamiento. Solo juega con lo ya aprendido. Al desactivarlo, vuelve al modo normal con captura y re-entrenamiento automático.
+- **Auto-aprendizaje** — Cuando se acumulan suficientes fotos de fallos, la IA se re-entrena sola usando DINO para etiquetar y YOLO para aprender.
+
 ## Estructura del proyecto
 
 ```
@@ -52,6 +55,9 @@ gallina/
 │   ├── fusionar_dino.py
 │   └── ...
 ├── assets/            # Imágenes del UI
+├── dist/              # Ejecutable compilado
+│   └── gallina.exe
 ├── main.py            # Punto de entrada
+├── main.spec          # Configuración de PyInstaller
 └── best.pt            # Pesos del modelo (generado)
 ```
