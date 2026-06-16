@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.spec
+.venv/
+*.pt
+runs/
+Dataset_Fallos/
+Dataset_Gallina/
+registro_ia.txt
