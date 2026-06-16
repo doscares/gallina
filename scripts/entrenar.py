@@ -6,7 +6,7 @@ if __name__ == '__main__':
     print("🔥 Iniciando el entrenamiento en la RTX 4060 🔥")
     
     resultados = modelo.train(
-        data="C:/Users/USUARIO/Desktop/gallina/Dataset_Gallina/data.yaml", # <-- RUTA A TU YAML
+        data="Dataset_Gallina/data.yaml",
         epochs=100,       
         imgsz=640,        
         device=0,         

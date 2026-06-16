@@ -13,9 +13,9 @@ import glob
 import cv2 
 from ultralytics import YOLO
 
-from vision import VisionController
-from logic import GameLogic
-from caja_negra import CajaNegra  
+from src.vision import VisionController
+from src.logic import GameLogic
+from src.caja_negra import CajaNegra  
 
 pyautogui.FAILSAFE = False 
 pyautogui.PAUSE = 0.01
@@ -28,6 +28,7 @@ class AppUI:
         
         self.running = True
         self.auto_play = False
+        self.solo_jugar = False
         self.frames_perdidos = 0 
         self.entrenando = False 
         
@@ -58,6 +59,9 @@ class AppUI:
         self.btn_auto = tk.Button(self.root, text="AUTO-PLAY: OFF", command=self.toggle_auto, bg="orange", fg="white", font=("Arial", 10, "bold"))
         self.btn_auto.pack(pady=5)
 
+        self.btn_solo = tk.Button(self.root, text="🎮 SOLO JUGAR: OFF", command=self.toggle_solo, bg="gray", fg="white", font=("Arial", 10, "bold"))
+        self.btn_solo.pack(pady=5)
+
         self.btn_train = tk.Button(self.root, text="🔥 ENTRENAR IA 🔥", command=self.lanzar_entrenamiento, bg="purple", fg="white", font=("Arial", 10, "bold"))
         self.btn_train.pack(pady=5)
 
@@ -69,6 +73,19 @@ class AppUI:
         self.auto_play = not self.auto_play
         self.btn_auto.config(text=f"AUTO-PLAY: {'ON' if self.auto_play else 'OFF'}", 
                              bg="#2ECC71" if self.auto_play else "orange")
+
+    def toggle_solo(self):
+        if self.entrenando:
+            print("⏳ Espera, la IA se está entrenando...")
+            return
+
+        self.solo_jugar = not self.solo_jugar
+        self.btn_solo.config(
+            text=f"🎮 SOLO JUGAR: {'ON' if self.solo_jugar else 'OFF'}",
+            bg="#2ECC71" if self.solo_jugar else "gray"
+        )
+        if self.solo_jugar:
+            print("🎮 Modo Solo Jugar activado: sin capturas ni auto-entrenamiento")
 
     def lanzar_entrenamiento(self):
         if self.entrenando: return
@@ -86,13 +103,13 @@ class AppUI:
 
         try:
             print("\n🦖 1. Llamando al Profesor DINO (Etiquetado Automático)...")
-            subprocess.run([sys.executable, "etiquetador_dino.py"], check=True)
+            subprocess.run([sys.executable, "scripts/etiquetador_dino.py"], check=True)
 
             print("\n🧹 2. Fusionando y limpiando Dataset de Fallos...")
-            subprocess.run([sys.executable, "fusionar_dino.py"], check=True)
+            subprocess.run([sys.executable, "scripts/fusionar_dino.py"], check=True)
 
             print("\n🔥 3. Encendiendo motores RTX (Entrenamiento YOLOv8)...")
-            subprocess.run([sys.executable, "entrenar.py"], check=True)
+            subprocess.run([sys.executable, "scripts/entrenar.py"], check=True)
 
             print("\n🔍 4. Buscando el nuevo cerebro generado...")
             carpetas_train = glob.glob('runs/detect/train*')
@@ -187,8 +204,9 @@ class AppUI:
 
                 # --- NUEVO: LAS CÁMARAS SOLO GRABAN SI ESTÁ JUGANDO ---
                 if self.auto_play:
-                    frame = self.vision.capture_screen() 
-                    self.caja_negra.registrar_frame(frame)
+                    frame = self.vision.capture_screen()
+                    if not self.solo_jugar:
+                        self.caja_negra.registrar_frame(frame)
                     
                     chicken_pos, fire_pos, threat_pos, game_state = self.vision.get_object_positions(frame)
                     main_txt, sub_txt, main_col, sub_col, is_ready, click_x, click_y, _, _ = self.logic.analyze_situation(chicken_pos, fire_pos, threat_pos, game_state)
@@ -214,8 +232,9 @@ class AppUI:
                         elif "COLISIÓN CONFIRMADA" in main_txt:
                             motivo_muerte = f"muerte_{self.logic.ultimo_peligro_visto}"
                             print(f"💀 YOLO vio el Game Over ({self.logic.ultimo_peligro_visto}). Reiniciando.")
-                            self.logic.registrar_resultado(victoria=False) 
-                            Thread(target=self.pipeline_retroalimentacion, args=(motivo_muerte,), daemon=True).start()
+                            self.logic.registrar_resultado(victoria=False)
+                            if not self.solo_jugar:
+                                Thread(target=self.pipeline_retroalimentacion, args=(motivo_muerte,), daemon=True).start()
                             self.logic.resetear_pasos() 
                             self.logic.last_bet_time = time.time() 
                             time.sleep(1.0) 
@@ -233,7 +252,7 @@ class AppUI:
                     time.sleep(0.1)
                         
                 # --- CHEQUEO PERIÓDICO DE AUTO-ENTRENAMIENTO (Cada 10 segundos) ---
-                if time.time() - ultimo_chequeo_evolucion > 10.0 and self.logic.pasos_dados == 0:
+                if not self.solo_jugar and time.time() - ultimo_chequeo_evolucion > 10.0 and self.logic.pasos_dados == 0:
                     self.comprobar_auto_evolucion()
                     ultimo_chequeo_evolucion = time.time()
                 
