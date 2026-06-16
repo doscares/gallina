@@ -17,7 +17,10 @@ if exist dist rmdir /s /q dist >nul 2>&1
 if exist build rmdir /s /q build >nul 2>&1
 
 echo [2/3] Compilando con PyInstaller (esto puede tardar varios minutos)...
-python -m PyInstaller --onefile --console --name gallina main.py --noconfirm
+python -m PyInstaller --onefile --console --name gallina ^
+    --add-data "scripts;scripts" ^
+    --add-data "best.pt;." ^
+    main.py --noconfirm
 if %errorlevel% neq 0 (
     echo [ERROR] Fallo la compilacion. Revisa los errores arriba.
     pause

@@ -3,6 +3,7 @@ import sys
 os.environ['KMP_DUPLICATE_LIB_OK']='True' 
 
 import tkinter as tk
+from tkinter import messagebox
 from threading import Thread
 import time
 import pyautogui
@@ -21,41 +22,60 @@ from src.caja_negra import CajaNegra
 pyautogui.FAILSAFE = False 
 pyautogui.PAUSE = 0.01
 
+def obtener_ruta_base():
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
+RUTA_BASE = obtener_ruta_base()
+
+def ruta_relativa(path):
+    ruta = os.path.join(RUTA_BASE, path)
+    if not os.path.exists(ruta) and getattr(sys, 'frozen', False):
+        ruta = os.path.join(sys._MEIPASS, path)
+    return ruta
+
 def verificar_gpu():
     print("🔍 Verificando compatibilidad de hardware...")
-    if not torch.cuda.is_available():
-        print("╔══════════════════════════════════════════════════════╗")
-        print("║     🚫 GPU NO COMPATIBLE DETECTADA                  ║")
-        print("╠══════════════════════════════════════════════════════╣")
-        print("║  No se detectó una GPU NVIDIA con CUDA.            ║")
-        print("║  Este programa requiere una tarjeta gráfica        ║")
-        print("║  NVIDIA compatible con CUDA para funcionar.        ║")
-        print("╠══════════════════════════════════════════════════════╣")
-        print("║  GPUs compatibles (lista no exhaustiva):           ║")
-        print("║  • NVIDIA GeForce GTX 900 series en adelante       ║")
-        print("║  • NVIDIA GeForce GTX 1000 series en adelante      ║")
-        print("║  • NVIDIA GeForce RTX 2000 series en adelante      ║")
-        print("║  • NVIDIA Quadro P series en adelante              ║")
-        print("╠══════════════════════════════════════════════════════╣")
-        print("║  Si tienes una GPU compatible, actualiza tus       ║")
-        print("║  drivers e instala CUDA Toolkit desde:             ║")
-        print("║  https://developer.nvidia.com/cuda-downloads        ║")
-        print("╚══════════════════════════════════════════════════════╝")
+    try:
+        if not torch.cuda.is_available():
+            print("╔══════════════════════════════════════════════════════╗")
+            print("║     🚫 GPU NO COMPATIBLE DETECTADA                  ║")
+            print("╠══════════════════════════════════════════════════════╣")
+            print("║  No se detectó una GPU NVIDIA con CUDA.            ║")
+            print("║  Este programa requiere una tarjeta gráfica        ║")
+            print("║  NVIDIA compatible con CUDA para funcionar.        ║")
+            print("╠══════════════════════════════════════════════════════╣")
+            print("║  GPUs compatibles (lista no exhaustiva):           ║")
+            print("║  • NVIDIA GeForce GTX 900 series en adelante       ║")
+            print("║  • NVIDIA GeForce GTX 1000 series en adelante      ║")
+            print("║  • NVIDIA GeForce RTX 2000 series en adelante      ║")
+            print("║  • NVIDIA Quadro P series en adelante              ║")
+            print("╠══════════════════════════════════════════════════════╣")
+            print("║  Si tienes una GPU compatible, actualiza tus       ║")
+            print("║  drivers e instala CUDA Toolkit desde:             ║")
+            print("║  https://developer.nvidia.com/cuda-downloads        ║")
+            print("╚══════════════════════════════════════════════════════╝")
+            sys.exit(1)
+
+        gpu_name = torch.cuda.get_device_name(0)
+        gpu_ver = torch.version.cuda
+        print(f"✅ GPU Detectada: {gpu_name}")
+        print(f"✅ CUDA Version: {gpu_ver}")
+        print("✅ Hardware compatible. Iniciando programa...\n")
+    except Exception as e:
+        print(f"⚠ Error al verificar GPU: {e}")
         sys.exit(1)
-
-    gpu_name = torch.cuda.get_device_name(0)
-    gpu_ver = torch.version.cuda
-    print(f"✅ GPU Detectada: {gpu_name}")
-    print(f"✅ CUDA Version: {gpu_ver}")
-    print("✅ Hardware compatible. Iniciando programa...\n")
-
-verificar_gpu()
 
 class AppUI:
     def __init__(self):
-        self.vision = VisionController()
+        try:
+            self.vision = VisionController(ruta_base=RUTA_BASE)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo cargar el modelo YOLO:\n{e}")
+            sys.exit(1)
         self.logic = GameLogic()
-        self.caja_negra = CajaNegra(max_frames=8)
+        self.caja_negra = CajaNegra(max_frames=8, ruta_base=RUTA_BASE)
         
         self.running = True
         self.auto_play = False
@@ -128,32 +148,38 @@ class AppUI:
         
         Thread(target=self.proceso_entrenamiento_magico, daemon=True).start()
 
+    def ruta_script(self, nombre):
+        return ruta_relativa(os.path.join("scripts", nombre))
+
     def proceso_entrenamiento_magico(self):
         self.btn_train.config(text="ENTRENANDO...", bg="red", state=tk.DISABLED)
         self.lbl_status.config(text="ACTUALIZANDO CEREBRO", fg="red")
 
         try:
+            import subprocess, sys
+            python_exe = sys.executable
+
             print("\n🦖 1. Llamando al Profesor DINO (Etiquetado Automático)...")
-            subprocess.run([sys.executable, "scripts/etiquetador_dino.py"], check=True)
+            subprocess.run([python_exe, self.ruta_script("etiquetador_dino.py")], check=True)
 
             print("\n🧹 2. Fusionando y limpiando Dataset de Fallos...")
-            subprocess.run([sys.executable, "scripts/fusionar_dino.py"], check=True)
+            subprocess.run([python_exe, self.ruta_script("fusionar_dino.py")], check=True)
 
             print("\n🔥 3. Encendiendo motores RTX (Entrenamiento YOLOv8)...")
-            subprocess.run([sys.executable, "scripts/entrenar.py"], check=True)
+            subprocess.run([python_exe, self.ruta_script("entrenar.py")], check=True)
 
             print("\n🔍 4. Buscando el nuevo cerebro generado...")
-            carpetas_train = glob.glob('runs/detect/train*')
+            carpetas_train = glob.glob(ruta_relativa('runs/detect/train*'))
             if carpetas_train:
                 ultima_carpeta = max(carpetas_train, key=os.path.getctime)
                 ruta_nuevo_best = os.path.join(ultima_carpeta, 'weights', 'best.pt')
 
                 if os.path.exists(ruta_nuevo_best):
-                    shutil.copy(ruta_nuevo_best, "best.pt")
+                    shutil.copy(ruta_nuevo_best, ruta_relativa("best.pt"))
                     print(f"✅ Nuevo best.pt copiado con éxito desde: {ultima_carpeta}")
 
                     print("\n⚡ 5. Recargando IA en memoria (Hot-Swap)...")
-                    self.vision.model = YOLO("best.pt")
+                    self.vision.model = YOLO(ruta_relativa("best.pt"))
                     print("🎉 ¡PROCESO COMPLETADO! IA más inteligente lista para jugar.")
                 else:
                     print("❌ No se encontró el archivo best.pt.")
@@ -180,7 +206,8 @@ class AppUI:
             self.caja_negra.guardar_evidencia(carpeta_temporal)
             time.sleep(1.5)
             
-            opcion_subcarpeta = os.path.join("Dataset_Fallos", carpeta_temporal)
+            dataset_fallos = ruta_relativa("Dataset_Fallos")
+            opcion_subcarpeta = os.path.join(dataset_fallos, carpeta_temporal)
             ruta_origen = opcion_subcarpeta if os.path.exists(opcion_subcarpeta) else (carpeta_temporal if os.path.exists(carpeta_temporal) else None)
                 
             if not ruta_origen: return
@@ -191,7 +218,7 @@ class AppUI:
             for img_name in imagenes_a_procesar:
                 img_path = os.path.join(ruta_origen, img_name)
                 nombre_final = f"{motivo_finalizacion}_{timestamp}_{img_name}"
-                ruta_destino = os.path.join("Dataset_Fallos", nombre_final)
+                ruta_destino = os.path.join(dataset_fallos, nombre_final)
                 shutil.move(img_path, ruta_destino)
                 
             shutil.rmtree(ruta_origen)
@@ -203,8 +230,9 @@ class AppUI:
     def comprobar_auto_evolucion(self):
         if self.entrenando: return
         try:
-            if not os.path.exists("Dataset_Fallos"): return
-            archivos = [f for f in os.listdir("Dataset_Fallos") if f.endswith('.jpg')]
+            dataset_fallos = ruta_relativa("Dataset_Fallos")
+            if not os.path.exists(dataset_fallos): return
+            archivos = [f for f in os.listdir(dataset_fallos) if f.endswith('.jpg')]
             if len(archivos) >= self.FOTOS_PARA_EVOLUCIONAR:
                 print(f"🤖 SKYNET PROTOCOL: Se acumularon {len(archivos)} imágenes. Iniciando Auto-Evolución...")
                 self.lanzar_entrenamiento()
@@ -223,7 +251,7 @@ class AppUI:
                 if keyboard.is_pressed('f9') and not self.entrenando:
                     frame_manual = self.vision.capture_screen()
                     timestamp = int(time.time())
-                    ruta_img = os.path.join("Dataset_Fallos", f"manual_inicio_{timestamp}.jpg")
+                    ruta_img = os.path.join(ruta_relativa("Dataset_Fallos"), f"manual_inicio_{timestamp}.jpg")
                     cv2.imwrite(ruta_img, frame_manual)
                     with open(ruta_img.replace('.jpg', '.txt'), 'w') as f: pass 
                     print(f"📸 ¡FOTO MANUAL CAPTURADA!")
@@ -293,4 +321,14 @@ class AppUI:
                 time.sleep(1)
 
 if __name__ == "__main__":
-    AppUI()
+    try:
+        AppUI()
+    except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        print(f"ERROR FATAL: {error_msg}")
+        try:
+            messagebox.showerror("Error Fatal", f"Ocurrió un error:\n{e}\n\nRevisa la consola para más detalles.")
+        except:
+            pass
+        sys.exit(1)

@@ -1,12 +1,16 @@
+import os
 import cv2
 import numpy as np
 import pyautogui
 from ultralytics import YOLO
 
 class VisionController:
-    def __init__(self):
-        # Carga tu nuevo cerebro de 7 clases
-        self.model = YOLO("best.pt")
+    def __init__(self, ruta_base="."):
+        modelo_path = os.path.join(ruta_base, "best.pt")
+        if not os.path.exists(modelo_path) and getattr(__import__('sys'), 'frozen', False):
+            import sys
+            modelo_path = os.path.join(sys._MEIPASS, "best.pt")
+        self.model = YOLO(modelo_path)
 
     def capture_screen(self):
         screenshot = pyautogui.screenshot()

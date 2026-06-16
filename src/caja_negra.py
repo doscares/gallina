@@ -4,10 +4,9 @@ import time
 from collections import deque
 
 class CajaNegra:
-    def __init__(self, max_frames=15):
-        # deque funciona como una memoria circular: si se llena, borra el más viejo
+    def __init__(self, max_frames=15, ruta_base="."):
         self.buffer = deque(maxlen=max_frames) 
-        self.carpeta = "Dataset_Fallos"
+        self.carpeta = os.path.join(ruta_base, "Dataset_Fallos")
         
         # Crea la carpeta si no existe
         if not os.path.exists(self.carpeta):
