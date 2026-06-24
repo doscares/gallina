@@ -18,7 +18,7 @@ from ultralytics import YOLO
 from src.vision import VisionController
 from src.logic import GameLogic
 from src.caja_negra import CajaNegra
-from src.botones import ButtonDetector
+from src.calibrador import Coordenadas, CalibradorUI
 
 pyautogui.FAILSAFE = False 
 pyautogui.PAUSE = 0.01
@@ -69,16 +69,17 @@ def verificar_gpu():
         sys.exit(1)
 
 class AppUI:
-    def __init__(self):
+    def __init__(self, coords: Coordenadas = None):
         try:
             self.vision = VisionController(ruta_base=RUTA_BASE)
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo cargar el modelo YOLO:\n{e}")
             sys.exit(1)
         self.logic = GameLogic()
+        self.coords = coords or Coordenadas(RUTA_BASE)
+        if self.coords.cargados:
+            self.logic.actualizar_coordenadas(self.coords.apostar, self.coords.avanzar)
         self.caja_negra = CajaNegra(max_frames=8, ruta_base=RUTA_BASE)
-        self.detector = ButtonDetector(ruta_base=RUTA_BASE)
-        self.detector.calibrar()
         
         self.running = True
         self.auto_play = False
@@ -99,7 +100,7 @@ class AppUI:
     def setup_gui(self):
         self.root.title("Gallina AI - Skynet Loop")
         self.root.attributes("-topmost", True)
-        self.root.geometry("250x230+10+10") 
+        self.root.geometry("250x260+10+10") 
         
         self.lbl_status = tk.Label(self.root, text="INICIANDO...", font=("Arial", 16, "bold"))
         self.lbl_status.pack(pady=5)
@@ -118,6 +119,9 @@ class AppUI:
 
         self.btn_train = tk.Button(self.root, text="🔥 ENTRENAR IA 🔥", command=self.lanzar_entrenamiento, bg="purple", fg="white", font=("Arial", 10, "bold"))
         self.btn_train.pack(pady=5)
+
+        self.btn_calibrar = tk.Button(self.root, text="🎯 Calibrar Botones", command=self.recalibrar, bg="teal", fg="white", font=("Arial", 9))
+        self.btn_calibrar.pack(pady=2)
 
     def toggle_auto(self):
         if self.entrenando:
@@ -140,6 +144,12 @@ class AppUI:
         )
         if self.solo_jugar:
             print("🎮 Modo Solo Jugar activado: sin capturas ni auto-entrenamiento")
+
+    def recalibrar(self):
+        cal = CalibradorUI(self.coords, parent=self.root)
+        if cal.mostrar():
+            self.logic.actualizar_coordenadas(self.coords.apostar, self.coords.avanzar)
+            print(f"🎯 Botones recalibrados: Apostar={self.coords.apostar}, Avanzar={self.coords.avanzar}")
 
     def lanzar_entrenamiento(self):
         if self.entrenando: return
@@ -270,9 +280,6 @@ class AppUI:
                     if not self.solo_jugar:
                         self.caja_negra.registrar_frame(frame)
                     
-                    btn_apostar, btn_avanzar = self.detector.encontrar_botones()
-                    self.logic.actualizar_coordenadas(btn_apostar=btn_apostar, btn_avanzar=btn_avanzar)
-
                     chicken_pos, fire_pos, threat_pos, game_state = self.vision.get_object_positions(frame)
                     main_txt, sub_txt, main_col, sub_col, is_ready, click_x, click_y, _, _ = self.logic.analyze_situation(chicken_pos, fire_pos, threat_pos, game_state)
                     
@@ -328,7 +335,18 @@ class AppUI:
 
 if __name__ == "__main__":
     try:
-        AppUI()
+        coords = Coordenadas(RUTA_BASE)
+        if not coords.cargar():
+            print("🎯 Primera vez o calibración faltante. Abriendo calibrador...")
+            cal = CalibradorUI(coords)
+            if not cal.mostrar():
+                print("Calibración cancelada.")
+                sys.exit(0)
+            print(f"✅ Botones calibrados: Apostar={coords.apostar}, Avanzar={coords.avanzar}")
+        else:
+            print(f"✅ Coordenadas cargadas: Apostar={coords.apostar}, Avanzar={coords.avanzar}")
+
+        AppUI(coords)
     except Exception as e:
         import traceback
         error_msg = traceback.format_exc()
