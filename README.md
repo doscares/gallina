@@ -27,6 +27,21 @@ pip install -r requirements.txt
 python main.py
 ```
 
+## Calibración inicial (obligatorio la primera vez)
+
+Al iniciar el programa por primera vez, se abre un calibrador **fullscreen** con una foto de tu pantalla y dos rectángulos arrastrables:
+
+| Rectángulo | Color | Botón del juego |
+|---|---|---|
+| **APOSTAR / RETIRAR** | Azul | El botón para apostar fichas o retirar ganancias |
+| **AVANZAR** | Verde | El botón para avanzar de carril |
+
+1. Arrastra cada rectángulo con el mouse y colócalo exactamente sobre el botón correspondiente en la imagen de fondo
+2. Presiona **"LISTO - EMPEZAR A JUGAR"**
+3. Las coordenadas se guardan en `config_botones.json` para no tener que repetirlo
+
+Si mueves la ventana del juego o cambias de monitor, puedes recalibrar en cualquier momento con el botón **🎯 Calibrar Botones** de la interfaz principal.
+
 ## Controles
 
 | Tecla/Control | Función |
@@ -36,9 +51,11 @@ python main.py
 | Botón **AUTO-PLAY** | Inicia/Detiene el juego automático |
 | Botón **SOLO JUGAR** | Juega sin capturar screens ni auto-entrenar |
 | Botón **ENTRENAR IA** | Entrena la IA manualmente |
+| Botón **🎯 Calibrar Botones** | Recalibrar la posición de los botones en pantalla |
 
 ## Funcionalidades
 
+- **Calibrador visual de botones** — Al iniciar, muestra un overlay con la pantalla actual y dos rectángulos arrastrables para indicar dónde están los botones de "Apostar/Retirar" y "Avanzar". Las coordenadas se guardan y reutilizan.
 - **Detector de GPU automático** — Verifica que el hardware sea compatible al iniciar. Si no detecta una GPU NVIDIA con CUDA, muestra las series compatibles y se cierra para proteger equipos de gama baja.
 - **Solo Jugar** — Botón que desactiva la captura de screenshots y el auto-entrenamiento. Solo juega con lo ya aprendido. Al desactivarlo, vuelve al modo normal con captura y re-entrenamiento automático.
 - **Auto-aprendizaje** — Cuando se acumulan suficientes fotos de fallos, la IA se re-entrena sola usando DINO para etiquetar y YOLO para aprender.
@@ -50,6 +67,7 @@ gallina/
 ├── src/               # Código fuente del bot
 │   ├── vision.py      # Detección por cámara (YOLO)
 │   ├── logic.py       # Lógica de juego y decisiones
+│   ├── calibrador.py  # Calibración visual de botones arrastrables
 │   └── caja_negra.py  # Captura de evidencia en muerte
 ├── scripts/           # Utilidades
 │   ├── entrenar.py    # Entrenamiento YOLO
